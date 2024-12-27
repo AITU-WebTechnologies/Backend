@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 const AutoIncrement = require('mongoose-sequence')(mongoose);
 
 const CheckerSchema = new mongoose.Schema({
-    _id: {
+    checkerId: {
         type: Number,
         unique: true
     },
@@ -29,7 +29,7 @@ const CheckerSchema = new mongoose.Schema({
     }
 })
 
-CheckerSchema.plugin(AutoIncrement, {inc_field: '_id', id: 'checkerCounter'});
+CheckerSchema.plugin(AutoIncrement, {inc_field: 'checkerId'});
 
 const Checker = mongoose.model('Checker', CheckerSchema)
 

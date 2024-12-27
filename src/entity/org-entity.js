@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 const AutoIncrement = require('mongoose-sequence')(mongoose);
 
 const OrgSchema = new mongoose.Schema({
-    _id: {
+    organisationId: {
         type: Number,
         unique: true
     },
@@ -25,7 +25,7 @@ const OrgSchema = new mongoose.Schema({
     }
 })
 
-OrgSchema.plugin(AutoIncrement, {inc_field: '_id', id: 'orgCounter'});
+OrgSchema.plugin(AutoIncrement, {inc_field: 'organisationId'});
 
 const Organisation = mongoose.model('Organisation', OrgSchema);
 
