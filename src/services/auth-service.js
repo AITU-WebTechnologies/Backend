@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const sendEmail = require('../utils/mail-service');
 const redisClient = require('../clients/redis-client');
-const { secretKey } = require('../middlewares/auth');
+const { generateTokens } = require('../middlewares/auth');
 
 class AuthService {
     async checkUser(email, password) {
@@ -31,9 +31,11 @@ class AuthService {
             throw new Error('Invalid credentials.');
         }
 
-        const token = jwt.sign({ id: user[userIdField], role }, secretKey, { expiresIn: '1d' });
+        const tokens = generateTokens({ id: user[userIdField] });
 
-        return { token, role };
+        await redisClient.set(`refreshToken:${user[userIdField]}`, tokens.refreshToken);
+
+        return { tokens, role };
     }
 
     async sendResetCode(email) {
@@ -84,29 +86,35 @@ class AuthService {
         if (!email || !password) {
             throw new Error("Email and password are required.");
         }
-    
+
         let user = await Checker.findOne({ email });
         let userIdField = 'checkerId';
         let role = "Checker";
-    
+
         if (!user) {
             user = await Organisation.findOne({ email });
             userIdField = 'organisationId';
             role = "Organisation";
-    
+
             if (!user) {
                 throw new Error("User not found.");
             }
         }
-    
+
         const hashedPassword = await bcrypt.hash(password, 10);
         user.password = hashedPassword;
-    
+
         await user.save();
 
-        const token = jwt.sign( { id: user[userIdField], role }, secretKey, { expiresIn: "1d" } );
-    
-        return { role, token };
+        const tokens = generateTokens({ id: user[userIdField], role });
+
+        await redisClient.set(`refreshToken:${user[userIdField]}`, tokens.refreshToken);
+
+        return { role, tokens };
+    }
+
+    async storeRefreshToken(userId, refreshToken) {
+        await redisClient.set(`refreshToken:${userId}`, refreshToken, 'EX', 30 * 24 * 60 * 60);
     }
     
 }

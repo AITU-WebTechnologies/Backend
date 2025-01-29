@@ -26,7 +26,7 @@ class EventController {
   async getEventById(req, res) {
     try {
       const { eventId } = req.params;
-  
+      console.log(eventId)
       const event = await eventService.getEventById(eventId);
   
       if (!event) {
@@ -42,6 +42,7 @@ class EventController {
   
       res.status(200).json(event);
     } catch (error) {
+      console.log(error)
       res.status(500).json({ message: error.message });
     }
   }

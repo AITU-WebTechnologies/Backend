@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const cookieParser = require('cookie-parser');
 const orgRouter = require('./routes/org-router');
 const checkerRouter = require('./routes/checker-router')
 const authRouter = require('./routes/auth-router');
@@ -11,8 +12,15 @@ const morgan = require('morgan');
 const app = express();
 const PORT = process.env.PORT;
 
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], 
+    allowedHeaders: ['Content-Type', 'Authorization'], 
+}));
+
 app.use(express.json());
+app.use(cookieParser()); 
 app.use(morgan('dev'));
 
 connectDB();
@@ -22,6 +30,10 @@ app.use('/api/checker', checkerRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/event', eventRouter);
 
-app.listen(PORT, () => {
-    console.log(`App is running on port ${PORT}.`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+      console.log(`App is running on port ${PORT}.`);
+    });
+}
+
+module.exports = app;

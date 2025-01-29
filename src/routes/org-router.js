@@ -10,4 +10,8 @@ router.post('/confirm-org', organisationController.confirmOrganisationCode);
 
 router.get('/profile', authenticateToken, organisationController.getProfile);
 
+router.put('/update-profile', authenticateToken, organisationController.updateProfile);
+
+router.delete('/delete-account', authenticateToken, organisationController.deleteProfile);
+
 module.exports = router;

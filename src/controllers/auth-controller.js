@@ -1,13 +1,19 @@
 const authService = require('../services/auth-service');
+const {verifyRefreshToken, generateTokens } = require('../middlewares/auth');
 
 class AuthController {
     async checkUser(req, res) {
         try {
             const { email, password } = req.body;
 
-            const { token, role } = await authService.checkUser(email, password);
-
-            res.status(200).json({ token, role });
+            const { tokens, role } = await authService.checkUser(email, password);
+            res.cookie('refreshToken', tokens.refreshToken, {
+                httpOnly: true,
+                maxAge: 30 * 24 * 60 * 60 * 1000, 
+                secure: false,
+              });
+            const accessToken = tokens.accessToken
+            res.status(200).json({ accessToken, role });
         } catch (error) {
             res.status(400).json({ message: error.message });
         }
@@ -41,6 +47,29 @@ class AuthController {
             res.status(200).json({ role, token });
         } catch (error) {
             res.status(400).json({ message: error.message });
+        }
+    }
+
+    async refreshTokens(req, res) {
+        try {
+            console.log('RefreshToken из cookies:', req.cookies.refreshToken);
+            const refreshToken = req.cookies.refreshToken;
+            if (!refreshToken) throw new Error('Токен не найден');
+    
+            const decoded = await verifyRefreshToken(refreshToken);
+            const tokens = generateTokens({ id: decoded.id });
+    
+            await authService.storeRefreshToken(decoded.id, tokens.refreshToken);
+    
+            res.cookie('refreshToken', tokens.refreshToken, {
+                httpOnly: true,
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+                secure: false,
+            });
+            res.status(200).json({ accessToken: tokens.accessToken });
+        } catch (error) {
+            console.log(error);
+            res.status(403).json({ message: error.message });
         }
     }
     

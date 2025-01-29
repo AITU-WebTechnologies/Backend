@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/mail-service');
 const redisClient = require('../clients/redis-client');
-const { secretKey } = require('../middlewares/auth');
+const { generateTokens } = require('../middlewares/auth');
 
 class OrganisationService {
 
@@ -63,14 +63,14 @@ class OrganisationService {
         });
 
         const savedOrganisation = await organisation.save();
-        const organisationDTO = new OrganisationDTO(savedOrganisation);
-
-        const token = jwt.sign({ id: savedOrganisation.organisationId }, secretKey, { expiresIn: '1d' });
-
+        
+        const tokens = generateTokens({ id: savedOrganisation.organisationId });
+        
+        await redisClient.set(`refreshToken:${savedOrganisation.organisationId}`, tokens.refreshToken);
         await redisClient.del(`confirmation:${email}`);
         await redisClient.del(`orgData:${email}`);
 
-        return { organisation: organisationDTO, token };
+        return tokens;
     }
 
     async getProfile(organisationId) {
@@ -80,6 +80,27 @@ class OrganisationService {
         }
         return { title: organisation.title };
     }
+
+    async updateProfile(organisationId, data) {
+        const organisation = await Organisation.findOne({organisationId});
+        if (!organisation) {
+          throw new Error('Организация не найдена.');
+        }
+    
+        organisation.title = data.title;
+        await organisation.save();
+    
+        return { title: organisation.title };
+      }
+    
+      async deleteProfile(organisationId) {
+        const organisation = await Organisation.findOne({organisationId});
+        if (!organisation) {
+          throw new Error('Организация не найдена.');
+        }
+    
+        await organisation.deleteOne();
+      }
 }
 
 module.exports = new OrganisationService();
